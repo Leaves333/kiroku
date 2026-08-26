@@ -1,0 +1,4 @@
+(executable
+ (public_name kiroku)
+ (name main)
+ (libraries kiroku))
