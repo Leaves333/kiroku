@@ -1,0 +1,10 @@
+version = 0.29.0
+profile = conventional
+
+let-binding-indent = 4
+function-indent = 4
+match-indent = 4
+module-indent = 4
+type-decl-indent = 4
+extension-indent = 4
+cases-exp-indent = 4

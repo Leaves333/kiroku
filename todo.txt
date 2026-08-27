@@ -1,0 +1,9 @@
+(B) +ling406 getting to know you due:2025-09-03
+(B) +ling413 lab report 1 due:2026-09-01
+(B) read +ling490 notes due:2026-08-26
+(B) sort out per person price for summer utilities 
+(C) code custom +todotxt cli 
+(C) figure out +keepass sharing between devices 
+(C) implement gpg signing for commits 
+(C) install +keepass on phone @phone
+(C) update @homelab to fedora 46

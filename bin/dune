@@ -1,4 +1,4 @@
 (executable
  (public_name kiroku)
  (name main)
- (libraries kiroku))
+ (libraries kiroku nottui nottui-unix lwd))
