@@ -7,3 +7,17 @@
 (C) implement gpg signing for commits 
 (C) install +keepass on phone @phone
 (C) update @homelab to fedora 46
+x 2026-08-09 (B) restore @laptop windows dualbooting
+x 2026-08-09 disable obsidian +nvim plugin from treating enter as adding textbox
+x 2026-08-14 (B) organize apartment bills @laptop
+x 2026-08-20 (A) confirm flight comes with checked baggage
+x 2026-08-20 (B) vibecode quiet hours clone @laptop
+x 2026-08-20 (C) set up +fileserver on @homelab
+x 2026-08-23 (A) upload apartment photos before moveout
+x 2026-08-24 (B) read @ling413 paradigms in corpus ling due:2026-08-26
+x 2026-08-24 (B) read @ling413 conducting natural experiments due:2026-08-26
+x 2026-08-24 (A) find music to play for piano this sem due:2026-08-25
+x 2026-08-24 (A) create new +cs128h prairielearn due:2026-08-28
+x 2026-08-25 (B) add +ling490 syllabus dates to calendar
+x 2026-08-26 (A) plan out +cs128h schedule due:2026-08-28
+x 2026-08-27 (B) set up vms for +cs426
