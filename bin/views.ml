@@ -88,8 +88,11 @@ module Focus_map = Map.Make (struct
     let compare = Stdlib.compare
 end)
 
-type render_context = { state : app_state; statuses : Focus.status Focus_map.t }
-
+(* constructs a Lwd.t "reactive value" of a Focus.status Focus_map.t *)
+(* the `f` in List.fold_left takes our current reactive map, and a focus *)
+(* in the function Lwd.bind unwraps the Lwd.t *)
+(* then we map the focus to its Focus.status *)
+(* and the final function adds this key value pair to the map *)
 let focus_statuses =
     List.fold_left
       (fun statuses_lwd focus ->
@@ -99,10 +102,16 @@ let focus_statuses =
               ~f:(fun status -> Focus_map.add focus status statuses)))
       (Lwd.pure Focus_map.empty) all_focuses
 
+(* need a separate type for render context because state can be mutated by code... *)
+(* but statuses is "independent" info that can't be directly mutated *)
+type render_context = { state : app_state; statuses : Focus.status Focus_map.t }
+
+(* combine the state and focus_statuses to a single render_context object *)
 let render_context =
     Lwd.bind (Lwd.get app_state) ~f:(fun state ->
         Lwd.map focus_statuses ~f:(fun statuses -> { state; statuses }))
 
+(* main app view run by main.ml *)
 let app =
     Lwd.map render_context ~f:(fun context ->
         let state = context.state in
