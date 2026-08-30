@@ -1,3 +1,3 @@
 open Nottui
 
-let () = Nottui_unix.run Views.filter_view
+let () = Nottui_unix.run ~quit_on_escape:false Views.app
