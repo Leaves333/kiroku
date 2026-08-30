@@ -9,16 +9,6 @@ let all_focuses = [ Task; Filter ]
 let task_focus = Focus.make ()
 let filter_focus = Focus.make ()
 
-let resolve_focus focus =
-    match focus with Task -> task_focus | Filter -> filter_focus
-
-let release_all_focuses () =
-    List.iter (fun focus -> Focus.release @@ resolve_focus focus) all_focuses
-
-let set_focus focus =
-    release_all_focuses ();
-    Focus.request (resolve_focus focus)
-
 type app_state = {
     current_focus : focus;
     task_index : int;
@@ -28,12 +18,30 @@ type app_state = {
 let app_state =
     Lwd.var { current_focus = Task; task_index = 0; filter_pattern = "" }
 
+let resolve_focus focus =
+    match focus with Task -> task_focus | Filter -> filter_focus
+
+let release_all_focuses () =
+    List.iter (fun focus -> Focus.release @@ resolve_focus focus) all_focuses
+
+let set_focus focus =
+    release_all_focuses ();
+    Focus.request (resolve_focus focus);
+    Lwd.update (fun state -> { state with current_focus = focus }) app_state
+
 let focus_to_string focus =
     match focus with Task -> "Task" | Filter -> "Filter"
 
-(* task view stuff *)
+(* header *)
+let header_view ~(state : app_state) ~(focus : Focus.status) =
+    Ui.vcat
+      [
+        W.string "epic ocaml tui app !!!";
+        W.printf "current focus is: %s" (focus_to_string state.current_focus);
+        W.string "";
+      ]
 
-(* filter view stuff *)
+(* filter view *)
 let delete_last_char str =
     let len = String.length str in
     if String.length str = 0 then str else String.sub str 0 (len - 1)
@@ -59,27 +67,36 @@ let filter_keyboard_handler = function
           app_state;
         `Handled
     | `Escape, _ ->
-        Lwd.update
-          (fun state -> { state with current_focus = Filter })
-          app_state;
+        set_focus Task;
         `Handled
     | _ -> `Unhandled
 
 let filter_view ~(state : app_state) ~(focus : Focus.status) =
     let content =
         Ui.vcat
-        @@ [
-             W.printf "current focus is: %s"
-               (focus_to_string state.current_focus);
-             W.printf "matching pattern: %s" state.filter_pattern;
-             W.string "type to edit the pattern! Ctrl-q to quit.";
-             W.string "";
-           ]
-        @ List.map
-            (Filter.highlight_matches state.filter_pattern)
-            (Filter.filter_lines state.filter_pattern Filter.lines)
+          [
+            W.printf "matching pattern: %s" state.filter_pattern;
+            W.string "type to edit the pattern! Ctrl-q to quit.";
+            W.string "";
+          ]
     in
     Ui.keyboard_area ~focus filter_keyboard_handler content
+
+(* task view *)
+let task_keyboard_handler = function
+    | `ASCII '/', _ ->
+        set_focus Filter;
+        `Handled
+    | _ -> `Unhandled
+
+let task_view ~(state : app_state) ~(focus : Focus.status) =
+    let content =
+        List.map
+          (Filter.highlight_matches state.filter_pattern)
+          (Filter.filter_lines state.filter_pattern Filter.lines)
+        |> Ui.vcat
+    in
+    Ui.keyboard_area ~focus task_keyboard_handler content
 
 (* type for map, with focus_type as the key *)
 module Focus_map = Map.Make (struct
@@ -116,7 +133,11 @@ let app =
     Lwd.map render_context ~f:(fun context ->
         let state = context.state in
         let statuses = context.statuses in
+        let header =
+            header_view ~state ~focus:(Focus_map.find Filter statuses)
+        in
         let filter =
             filter_view ~state ~focus:(Focus_map.find Filter statuses)
         in
-        Ui.vcat [ filter ])
+        let task = task_view ~state ~focus:(Focus_map.find Task statuses) in
+        Ui.vcat [ header; filter; task ])
