@@ -9,14 +9,9 @@ let all_focuses = [ Task; Filter ]
 let task_focus = Focus.make ()
 let filter_focus = Focus.make ()
 
-type app_state = {
-    current_focus : focus;
-    task_index : int;
-    filter_pattern : string;
-  }
+type state = { focus : focus; task_index : int; filter_pattern : string }
 
-let app_state =
-    Lwd.var { current_focus = Task; task_index = 0; filter_pattern = "" }
+let state = Lwd.var { focus = Task; task_index = 0; filter_pattern = "" }
 
 let resolve_focus focus =
     match focus with Task -> task_focus | Filter -> filter_focus
@@ -27,17 +22,17 @@ let release_all_focuses () =
 let set_focus focus =
     release_all_focuses ();
     Focus.request (resolve_focus focus);
-    Lwd.update (fun state -> { state with current_focus = focus }) app_state
+    Lwd.update (fun state -> { state with focus }) state
 
 let focus_to_string focus =
     match focus with Task -> "Task" | Filter -> "Filter"
 
 (* header *)
-let header_view ~(state : app_state) ~(focus : Focus.status) =
+let header_view ~(state : state) ~(focus : Focus.status) =
     Ui.vcat
       [
         W.string "epic ocaml tui app !!!";
-        W.printf "current focus is: %s" (focus_to_string state.current_focus);
+        W.printf "current focus is: %s" (focus_to_string state.focus);
         W.string "";
       ]
 
@@ -55,7 +50,7 @@ let filter_keyboard_handler = function
               state with
               filter_pattern = state.filter_pattern ^ String.make 1 character;
             })
-          app_state;
+          state;
         `Handled
     | `Backspace, _ ->
         Lwd.update
@@ -64,18 +59,29 @@ let filter_keyboard_handler = function
               state with
               filter_pattern = delete_last_char state.filter_pattern;
             })
-          app_state;
+          state;
         `Handled
     | `Escape, _ ->
+        Lwd.update (fun state -> { state with task_index = 0 }) state;
         set_focus Task;
         `Handled
     | _ -> `Unhandled
 
-let filter_view ~(state : app_state) ~(focus : Focus.status) =
+(* this is defined both here and in views, can we have a common ui file? *)
+let highlight_attr = Notty.A.(fg black ++ bg yellow)
+
+let filter_view ~(state : state) ~(focus : Focus.status) =
+    let filter_desc = W.printf "matching pattern: %s" state.filter_pattern in
+    let filter_highlight = W.string ~attr:Filter.highlight_attr " " in
+    let filter_line_components =
+        if state.focus = Filter then [ filter_desc; filter_highlight ]
+        else [ filter_desc ]
+    in
+    let filter_line = Ui.hcat filter_line_components in
     let content =
         Ui.vcat
           [
-            W.printf "matching pattern: %s" state.filter_pattern;
+            filter_line;
             W.string "type to edit the pattern! Ctrl-q to quit.";
             W.string "";
           ]
@@ -83,17 +89,47 @@ let filter_view ~(state : app_state) ~(focus : Focus.status) =
     Ui.keyboard_area ~focus filter_keyboard_handler content
 
 (* task view *)
+let move_task_selection amount =
+    Lwd.update
+      (fun state ->
+        let visible_tasks =
+            Filter.filter_lines state.filter_pattern Filter.lines
+        in
+        let max_index = List.length visible_tasks - 1 in
+        let new_index = state.task_index + amount |> max 0 |> min max_index in
+        { state with task_index = new_index })
+      state
+
+let mark_selected_task index lines =
+    let rec helper acc index lines =
+        match lines with
+        | [] -> acc
+        | x :: xs ->
+            let select_text = if index = 0 then "> " else "  " in
+            let select_widget = W.string select_text in
+            helper (Ui.hcat [ select_widget; x ] :: acc) (index - 1) xs
+    in
+    List.rev (helper [] index lines)
+
 let task_keyboard_handler = function
     | `ASCII '/', _ ->
         set_focus Filter;
+        Lwd.update (fun state -> { state with task_index = -1 }) state;
+        `Handled
+    | (`Arrow `Up | `ASCII 'k'), _ ->
+        move_task_selection (-1);
+        `Handled
+    | (`Arrow `Down | `ASCII 'j'), _ ->
+        move_task_selection 1;
         `Handled
     | _ -> `Unhandled
 
-let task_view ~(state : app_state) ~(focus : Focus.status) =
+let task_view ~(state : state) ~(focus : Focus.status) =
     let content =
         List.map
           (Filter.highlight_matches state.filter_pattern)
           (Filter.filter_lines state.filter_pattern Filter.lines)
+        |> mark_selected_task state.task_index
         |> Ui.vcat
     in
     Ui.keyboard_area ~focus task_keyboard_handler content
@@ -121,11 +157,11 @@ let focus_statuses =
 
 (* need a separate type for render context because state can be mutated by code... *)
 (* but statuses is "independent" info that can't be directly mutated *)
-type render_context = { state : app_state; statuses : Focus.status Focus_map.t }
+type render_context = { state : state; statuses : Focus.status Focus_map.t }
 
 (* combine the state and focus_statuses to a single render_context object *)
 let render_context =
-    Lwd.bind (Lwd.get app_state) ~f:(fun state ->
+    Lwd.bind (Lwd.get state) ~f:(fun state ->
         Lwd.map focus_statuses ~f:(fun statuses -> { state; statuses }))
 
 (* main app view run by main.ml *)
