@@ -67,25 +67,16 @@ let filter_keyboard_handler = function
         `Handled
     | _ -> `Unhandled
 
-(* this is defined both here and in views, can we have a common ui file? *)
-let highlight_attr = Notty.A.(fg black ++ bg yellow)
-
 let filter_view ~(state : state) ~(focus : Focus.status) =
-    let filter_desc = W.printf "matching pattern: %s" state.filter_pattern in
+    let filter_desc = W.printf "filter: %s" state.filter_pattern in
+    (* this is defined both here and in views, can we have a common ui file? *)
     let filter_highlight = W.string ~attr:Filter.highlight_attr " " in
     let filter_line_components =
         if state.focus = Filter then [ filter_desc; filter_highlight ]
         else [ filter_desc ]
     in
     let filter_line = Ui.hcat filter_line_components in
-    let content =
-        Ui.vcat
-          [
-            filter_line;
-            W.string "type to edit the pattern! Ctrl-q to quit.";
-            W.string "";
-          ]
-    in
+    let content = Ui.vcat [ filter_line; W.string "" ] in
     Ui.keyboard_area ~focus filter_keyboard_handler content
 
 (* task view *)
@@ -126,9 +117,9 @@ let task_keyboard_handler = function
 
 let task_view ~(state : state) ~(focus : Focus.status) =
     let content =
-        List.map
-          (Filter.highlight_matches state.filter_pattern)
-          (Filter.filter_lines state.filter_pattern Filter.lines)
+        Filter.filter_lines state.filter_pattern Filter.lines
+        |> List.sort Utils.compare_by_priority
+        |> List.map (Filter.highlight_matches state.filter_pattern)
         |> mark_selected_task state.task_index
         |> Ui.vcat
     in
