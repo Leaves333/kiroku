@@ -12,4 +12,3 @@ goals: a) build a todo.txt tui and b) learn ocaml.
 - sort tasks by priority, context, etc
 - search for tasks via ripgrep
 - edit tasks with vim keybinds (?) why not just use vim
-- jello
