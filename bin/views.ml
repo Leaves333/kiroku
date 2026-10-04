@@ -1,20 +1,20 @@
 open Nottui
 module W = Nottui_widgets
 open In_channel
+open Utils
 
 (*lwd dynamic variables? *)
-type focus = Task | Filter
-
-let all_focuses = [ Task; Filter ]
+let all_focuses = [ Task; Filter; Edit ]
 let task_focus = Focus.make ()
 let filter_focus = Focus.make ()
-
-type state = { focus : focus; task_index : int; filter_pattern : string }
-
+let edit_focus = Focus.make ()
 let state = Lwd.var { focus = Task; task_index = 0; filter_pattern = "" }
 
 let resolve_focus focus =
-    match focus with Task -> task_focus | Filter -> filter_focus
+    match focus with
+    | Task -> task_focus
+    | Filter -> filter_focus
+    | Edit -> edit_focus
 
 let release_all_focuses () =
     List.iter (fun focus -> Focus.release @@ resolve_focus focus) all_focuses
@@ -25,7 +25,7 @@ let set_focus focus =
     Lwd.update (fun state -> { state with focus }) state
 
 let focus_to_string focus =
-    match focus with Task -> "Task" | Filter -> "Filter"
+    match focus with Task -> "Task" | Filter -> "Filter" | Edit -> "Edit"
 
 (* header *)
 let header_view ~(state : state) ~(focus : Focus.status) =
@@ -61,7 +61,7 @@ let filter_keyboard_handler = function
             })
           state;
         `Handled
-    | `Escape, _ ->
+    | `Escape, _ | `Enter, _ ->
         Lwd.update (fun state -> { state with task_index = 0 }) state;
         set_focus Task;
         `Handled
@@ -116,6 +116,25 @@ let task_keyboard_handler = function
     | _ -> `Unhandled
 
 let task_view ~(state : state) ~(focus : Focus.status) =
+    let content =
+        Utils.get_filtered_lines ~state
+        |> List.map (Filter.highlight_matches state.filter_pattern)
+        |> mark_selected_task state.task_index
+        |> Ui.vcat
+    in
+    Ui.keyboard_area ~focus task_keyboard_handler content
+
+(* edit view *)
+let get_ith_item ~state =
+    List.nth (Utils.get_filtered_lines ~state) state.task_index
+
+let edit_keyboard_handler = function
+    | `Enter, _ ->
+        set_focus Task;
+        `Handled
+    | _ -> `Unhandled
+
+let edit_view ~(state : state) ~(focus : Focus.status) =
     let content =
         Filter.filter_lines state.filter_pattern Filter.lines
         |> List.sort Utils.compare_by_priority
