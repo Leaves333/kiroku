@@ -23,7 +23,8 @@
   ocaml
   nottui
   nottui-unix
-  lwd)
+  lwd
+  (alcotest :with-test))
  (tags
   ("add topics" "to describe" your project)))
 

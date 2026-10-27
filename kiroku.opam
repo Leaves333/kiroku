@@ -15,6 +15,7 @@ depends: [
   "nottui"
   "nottui-unix"
   "lwd"
+  "alcotest" {with-test}
   "odoc" {with-doc}
 ]
 build: [
