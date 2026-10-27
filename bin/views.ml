@@ -142,7 +142,7 @@ let edit_view ~(state : state) ~(focus : Focus.status) =
         |> mark_selected_task state.task_index
         |> Ui.vcat
     in
-    Ui.keyboard_area ~focus task_keyboard_handler content
+    Ui.keyboard_area ~focus edit_keyboard_handler content
 
 (* type for map, with focus_type as the key *)
 module Focus_map = Map.Make (struct
