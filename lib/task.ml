@@ -1,11 +1,13 @@
 type date = { year : int; month : int; day : int }
 
-let null_date = { year = 0; month = 0; day = 0 }
-
 let date_to_string date =
   Printf.sprintf "%04d-%02d-%02d" date.year date.month date.day
 
-let parse_date str = raise @@ Failure "not yet implemented."
+let parse_date str =
+  (* parses the three ints from the string,
+     then passes the values to a function that constructs a date object *)
+  Scanf.sscanf_opt str "%04d-%02d-%02d%!" (fun year month day ->
+      { year; month; day })
 
 type status = Active | Completed of date | Archived of date
 
