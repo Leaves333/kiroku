@@ -20,7 +20,8 @@ let compare_by_priority a b =
   | None, None -> 0
 
 let get_filtered_lines ~state =
-  Filter.filter_lines state.filter_pattern (Lazy.force Filter.lines)
+  Filter.read_todo_file Filter.todo_file_location
+  |> Filter.filter_lines state.filter_pattern
   |> List.sort compare_by_priority
 
 type priority = char option
