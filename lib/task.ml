@@ -89,9 +89,11 @@ let parse_status line =
 
 (* returns the priority if present, and the rest of the line *)
 let parse_priority line =
-  if String.length line < 4 then (None, line)
-  else if line.[0] <> '(' || line.[2] <> ')' || line.[3] <> ' ' then (None, line)
-  else (Some line.[1], String.drop_first 4 line)
+  if String.length line < 4 then Some (None, line)
+  else if line.[0] <> '(' || line.[2] <> ')' || line.[3] <> ' ' then
+    Some (None, line)
+  else if line.[1] < 'A' || line.[1] > 'Z' then None
+  else Some (Some line.[1], String.drop_first 4 line)
 
 (* returns the due date if present, and the rest of the line *)
 let parse_due_date line =
@@ -99,6 +101,8 @@ let parse_due_date line =
   if String.length line < 4 then Some (None, line)
     (* line doesn't start with "due:" *)
   else if String.take_first 4 line <> "due:" then Some (None, line)
+    (* line is too short to contain a whole "due:yyyy-mm-dd" *)
+  else if String.length line < 14 then None
   else
     let date_option = parse_date (String.sub line 4 10) in
     match date_option with
@@ -114,6 +118,6 @@ let parse_task line =
   else
     let open Option.Syntax in
     let* status, remaining = parse_status line in
-    let priority, remaining = parse_priority remaining in
+    let* priority, remaining = parse_priority remaining in
     let* due_date, remaining = parse_due_date remaining in
     Some { status; priority; due_date; description = remaining }

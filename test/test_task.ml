@@ -77,7 +77,8 @@ let test_task_to_string_pads_dates () =
   check_task_to_string "pads status and due dates"
     "x 2026-01-05 (A) due:2026-01-09 task"
     (make_task ~priority:'A' ~due_date:(make_date 2026 1 9)
-       (Task.Completed (make_date 2026 1 5)) "task")
+       (Task.Completed (make_date 2026 1 5))
+       "task")
 
 (* parsing *)
 
@@ -112,6 +113,10 @@ let check_parsed_status name expected line =
 let check_parsed_due_date name expected line =
   Alcotest.(check (option (pair (option date_testable) string)))
     name expected (Task.parse_due_date line)
+
+let check_parsed_priority name expected line =
+  Alcotest.(check (option (pair (option char) string)))
+    name expected (Task.parse_priority line)
 
 let check_parsed_task name expected line =
   Alcotest.(check (option task_testable)) name expected (Task.parse_task line)
@@ -179,6 +184,33 @@ let test_parse_due_date_without_description () =
 let test_parse_due_date_invalid () =
   check_parsed_due_date "rejects invalid due date" None "due:not-a-date"
 
+let test_parse_due_date_short_prefix () =
+  check_parsed_due_date "rejects bare due prefix" None "due:";
+  check_parsed_due_date "rejects truncated year" None "due:2026";
+  check_parsed_due_date "rejects truncated date" None "due:2026-08"
+
+let test_parse_priority_capital () =
+  check_parsed_priority "accepts A" (Some (Some 'A', "buy milk")) "(A) buy milk";
+  check_parsed_priority "accepts Z" (Some (Some 'Z', "task")) "(Z) task";
+  check_parsed_priority "accepts prefix without description"
+    (Some (Some 'A', ""))
+    "(A) "
+
+let test_parse_priority_rejects_lowercase () =
+  check_parsed_priority "rejects (a)" None "(a) task"
+
+let test_parse_priority_rejects_digit () =
+  check_parsed_priority "rejects (1)" None "(1) task"
+
+let test_parse_priority_rejects_symbol () =
+  check_parsed_priority "rejects (_)" None "(_) task"
+
+let test_parse_priority_ignores_malformed_prefix () =
+  check_parsed_priority "multi-letter" (Some (None, "(AA) task")) "(AA) task";
+  check_parsed_priority "no separator space" (Some (None, "(A)task")) "(A)task";
+  check_parsed_priority "tab separator" (Some (None, "(A)\ttask")) "(A)\ttask";
+  check_parsed_priority "leading space" (Some (None, " (A) task")) " (A) task"
+
 let test_parse_task_active () =
   check_parsed_task "active task without optional fields"
     (Some (make_task Task.Active "buy milk"))
@@ -219,6 +251,13 @@ let test_parse_task_trims () =
 let test_parse_task_invalid_due_date () =
   check_parsed_task "rejects invalid due date" None "due:not-a-date buy milk"
 
+let test_parse_task_short_due_date () =
+  check_parsed_task "short due date does not raise" None "due:2026"
+
+let test_parse_task_invalid_priority () =
+  check_parsed_task "rejects lowercase priority" None "(a) task";
+  check_parsed_task "rejects digit priority" None "(1) task"
+
 let test_parse_task_roundtrip () =
   let tasks =
     [
@@ -252,8 +291,10 @@ let suites =
         Alcotest.test_case "to_char active" `Quick test_status_to_char_active;
         Alcotest.test_case "to_char completed" `Quick
           test_status_to_char_completed;
-        Alcotest.test_case "to_char archived" `Quick test_status_to_char_archived;
-        Alcotest.test_case "to_string active" `Quick test_status_to_string_active;
+        Alcotest.test_case "to_char archived" `Quick
+          test_status_to_char_archived;
+        Alcotest.test_case "to_string active" `Quick
+          test_status_to_string_active;
         Alcotest.test_case "to_string completed" `Quick
           test_status_to_string_completed;
         Alcotest.test_case "to_string archived" `Quick
@@ -299,6 +340,21 @@ let suites =
         Alcotest.test_case "without description" `Quick
           test_parse_due_date_without_description;
         Alcotest.test_case "invalid" `Quick test_parse_due_date_invalid;
+        Alcotest.test_case "short prefix" `Quick
+          test_parse_due_date_short_prefix;
+      ] );
+    ( "parse_priority",
+      [
+        Alcotest.test_case "accepts capital letters" `Quick
+          test_parse_priority_capital;
+        Alcotest.test_case "rejects lowercase" `Quick
+          test_parse_priority_rejects_lowercase;
+        Alcotest.test_case "rejects digit" `Quick
+          test_parse_priority_rejects_digit;
+        Alcotest.test_case "rejects symbol" `Quick
+          test_parse_priority_rejects_symbol;
+        Alcotest.test_case "ignores malformed prefix" `Quick
+          test_parse_priority_ignores_malformed_prefix;
       ] );
     ( "parse_task",
       [
@@ -312,6 +368,10 @@ let suites =
         Alcotest.test_case "trims whitespace" `Quick test_parse_task_trims;
         Alcotest.test_case "invalid due date" `Quick
           test_parse_task_invalid_due_date;
+        Alcotest.test_case "short due date" `Quick
+          test_parse_task_short_due_date;
+        Alcotest.test_case "invalid priority" `Quick
+          test_parse_task_invalid_priority;
         Alcotest.test_case "round-trips to_string" `Quick
           test_parse_task_roundtrip;
       ] );
