@@ -5,7 +5,6 @@ open In_channel
 let todo_file_path = "todo.txt"
 let print_list lines = String.concat ", " lines |> Printf.printf "[%s]"
 
-(* reads all the lines from todo.txt, on first use only *)
 let read_lines file =
   In_channel.with_open_text file In_channel.input_all
   |> String.split_on_char '\n'
