@@ -81,7 +81,7 @@ let move_task_selection amount =
   Lwd.update
     (fun state ->
       let visible_tasks =
-        Filter.read_todo_file Filter.todo_file_location
+        Filter.read_lines Filter.todo_file_path
         |> Filter.filter_lines state.filter_pattern
       in
       let max_index = List.length visible_tasks - 1 in
@@ -134,7 +134,7 @@ let edit_keyboard_handler = function
 
 let edit_view ~(state : state) ~(focus : Focus.status) =
   let content =
-    Filter.read_todo_file Filter.todo_file_location
+    Filter.read_lines Filter.todo_file_path
     |> Filter.filter_lines state.filter_pattern
     |> List.sort Utils.compare_by_priority
     |> List.map (Filter.highlight_matches state.filter_pattern)

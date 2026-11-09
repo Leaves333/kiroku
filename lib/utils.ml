@@ -20,7 +20,7 @@ let compare_by_priority a b =
   | None, None -> 0
 
 let get_filtered_lines ~state =
-  Filter.read_todo_file Filter.todo_file_location
+  Filter.read_lines Filter.todo_file_path
   |> Filter.filter_lines state.filter_pattern
   |> List.sort compare_by_priority
 
