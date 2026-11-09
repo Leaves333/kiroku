@@ -87,6 +87,12 @@ let parse_status line =
               let remaining = String.drop_first 13 line in
               Some (status_of_marker marker date, remaining))
 
+(* returns the priority if present, and the rest of the line *)
+let parse_priority line =
+  if String.length line < 4 then (None, line)
+  else if line.[0] <> '(' || line.[2] <> ')' || line.[3] <> ' ' then (None, line)
+  else (Some line.[1], String.drop_first 4 line)
+
 (* returns the due date if present, and the rest of the line *)
 let parse_due_date line =
   (* line is too short to have due *)
@@ -102,4 +108,12 @@ let parse_due_date line =
         Some (Some date, remaining)
 
 (* parses a whole line as a task *)
-let parse_task line = raise @@ Failure "not yet implemented."
+let parse_task line =
+  let line = String.trim line in
+  if line = "" then None
+  else
+    let open Option.Syntax in
+    let* status, remaining = parse_status line in
+    let priority, remaining = parse_priority remaining in
+    let* due_date, remaining = parse_due_date remaining in
+    Some { status; priority; due_date; description = remaining }
