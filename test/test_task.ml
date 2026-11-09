@@ -79,6 +79,165 @@ let test_task_to_string_pads_dates () =
     (make_task ~priority:'A' ~due_date:(make_date 2026 1 9)
        (Task.Completed (make_date 2026 1 5)) "task")
 
+(* parsing *)
+
+let date_testable =
+  Alcotest.testable
+    (fun fmt date -> Format.pp_print_string fmt (Task.date_to_string date))
+    ( = )
+
+let status_testable =
+  Alcotest.testable
+    (fun fmt status ->
+      match status with
+      | Task.Active -> Format.pp_print_string fmt "Active"
+      | Task.Completed date ->
+          Format.fprintf fmt "Completed %s" (Task.date_to_string date)
+      | Task.Archived date ->
+          Format.fprintf fmt "Archived %s" (Task.date_to_string date))
+    ( = )
+
+let task_testable =
+  Alcotest.testable
+    (fun fmt task -> Format.pp_print_string fmt (Task.to_string task))
+    ( = )
+
+let check_parsed_date name expected line =
+  Alcotest.(check (option date_testable)) name expected (Task.parse_date line)
+
+let check_parsed_status name expected line =
+  Alcotest.(check (option (pair status_testable string)))
+    name expected (Task.parse_status line)
+
+let check_parsed_due_date name expected line =
+  Alcotest.(check (option (pair (option date_testable) string)))
+    name expected (Task.parse_due_date line)
+
+let check_parsed_task name expected line =
+  Alcotest.(check (option task_testable)) name expected (Task.parse_task line)
+
+let test_parse_date_valid () =
+  check_parsed_date "parses a date" (Some (make_date 2026 8 24)) "2026-08-24"
+
+let test_parse_date_padded () =
+  check_parsed_date "parses padded date"
+    (Some (make_date 2026 1 5))
+    "2026-01-05"
+
+let test_parse_date_invalid_text () =
+  check_parsed_date "rejects non-date text" None "not-a-date"
+
+let test_parse_date_missing_component () =
+  check_parsed_date "rejects missing day" None "2026-08"
+
+let test_parse_date_empty () = check_parsed_date "rejects empty string" None ""
+
+let test_parse_date_trailing_text () =
+  check_parsed_date "rejects trailing text" None "2026-08-24 rest"
+
+let test_parse_status_active () =
+  check_parsed_status "active has no marker"
+    (Some (Task.Active, "buy milk"))
+    "buy milk"
+
+let test_parse_status_completed () =
+  check_parsed_status "completed consumes marker and date"
+    (Some (Task.Completed (make_date 2026 8 24), "buy milk"))
+    "x 2026-08-24 buy milk"
+
+let test_parse_status_archived () =
+  check_parsed_status "archived consumes marker and date"
+    (Some (Task.Archived (make_date 2026 8 24), "old task"))
+    "~ 2026-08-24 old task"
+
+let test_parse_status_completed_without_description () =
+  check_parsed_status "completed without description"
+    (Some (Task.Completed (make_date 2026 8 24), ""))
+    "x 2026-08-24"
+
+let test_parse_status_leaves_priority () =
+  check_parsed_status "priority is left for later"
+    (Some (Task.Active, "(A) buy milk"))
+    "(A) buy milk"
+
+let test_parse_status_invalid_date () =
+  check_parsed_status "rejects invalid status date" None "x not-a-date buy milk"
+
+let test_parse_due_date_present () =
+  check_parsed_due_date "parses due date"
+    (Some (Some (make_date 2026 8 26), "buy milk"))
+    "due:2026-08-26 buy milk"
+
+let test_parse_due_date_absent () =
+  check_parsed_due_date "no due date" (Some (None, "buy milk")) "buy milk"
+
+let test_parse_due_date_without_description () =
+  check_parsed_due_date "due date without description"
+    (Some (Some (make_date 2026 8 26), ""))
+    "due:2026-08-26"
+
+let test_parse_due_date_invalid () =
+  check_parsed_due_date "rejects invalid due date" None "due:not-a-date"
+
+let test_parse_task_active () =
+  check_parsed_task "active task without optional fields"
+    (Some (make_task Task.Active "buy milk"))
+    "buy milk"
+
+let test_parse_task_priority () =
+  check_parsed_task "active task with priority"
+    (Some (make_task ~priority:'A' Task.Active "buy milk"))
+    "(A) buy milk"
+
+let test_parse_task_due_date () =
+  check_parsed_task "active task with due date"
+    (Some (make_task ~due_date:(make_date 2026 8 26) Task.Active "buy milk"))
+    "due:2026-08-26 buy milk"
+
+let test_parse_task_completed_with_all_fields () =
+  check_parsed_task "completed task with all fields"
+    (Some
+       (make_task ~priority:'B' ~due_date:(make_date 2026 8 26)
+          (Task.Completed (make_date 2026 8 24))
+          "read @ling413 paradigms in corpus ling"))
+    "x 2026-08-24 (B) due:2026-08-26 read @ling413 paradigms in corpus ling"
+
+let test_parse_task_archived () =
+  check_parsed_task "archived task"
+    (Some (make_task (Task.Archived (make_date 2026 8 24)) "old task"))
+    "~ 2026-08-24 old task"
+
+let test_parse_task_empty () =
+  check_parsed_task "empty line" None "";
+  check_parsed_task "whitespace line" None "   "
+
+let test_parse_task_trims () =
+  check_parsed_task "trims surrounding whitespace"
+    (Some (make_task ~priority:'A' Task.Active "buy milk"))
+    "  (A) buy milk  "
+
+let test_parse_task_invalid_due_date () =
+  check_parsed_task "rejects invalid due date" None "due:not-a-date buy milk"
+
+let test_parse_task_roundtrip () =
+  let tasks =
+    [
+      make_task Task.Active "buy milk";
+      make_task ~priority:'A' Task.Active "buy milk";
+      make_task ~due_date:(make_date 2026 8 26) Task.Active "buy milk";
+      make_task ~priority:'B' ~due_date:(make_date 2026 8 26)
+        (Task.Completed (make_date 2026 8 24))
+        "read @ling413 paradigms in corpus ling";
+      make_task (Task.Archived (make_date 2026 8 24)) "old task";
+    ]
+  in
+  List.iter
+    (fun task ->
+      check_parsed_task
+        ("round-trips " ^ Task.to_string task)
+        (Some task) (Task.to_string task))
+    tasks
+
 let suites =
   [
     ( "date_to_string",
@@ -111,5 +270,49 @@ let suites =
         Alcotest.test_case "empty description" `Quick
           test_task_to_string_empty_description;
         Alcotest.test_case "pads dates" `Quick test_task_to_string_pads_dates;
+      ] );
+    ( "parse_date",
+      [
+        Alcotest.test_case "valid" `Quick test_parse_date_valid;
+        Alcotest.test_case "padded" `Quick test_parse_date_padded;
+        Alcotest.test_case "invalid text" `Quick test_parse_date_invalid_text;
+        Alcotest.test_case "missing component" `Quick
+          test_parse_date_missing_component;
+        Alcotest.test_case "empty" `Quick test_parse_date_empty;
+        Alcotest.test_case "trailing text" `Quick test_parse_date_trailing_text;
+      ] );
+    ( "parse_status",
+      [
+        Alcotest.test_case "active" `Quick test_parse_status_active;
+        Alcotest.test_case "completed" `Quick test_parse_status_completed;
+        Alcotest.test_case "archived" `Quick test_parse_status_archived;
+        Alcotest.test_case "completed without description" `Quick
+          test_parse_status_completed_without_description;
+        Alcotest.test_case "leaves priority" `Quick
+          test_parse_status_leaves_priority;
+        Alcotest.test_case "invalid date" `Quick test_parse_status_invalid_date;
+      ] );
+    ( "parse_due_date",
+      [
+        Alcotest.test_case "present" `Quick test_parse_due_date_present;
+        Alcotest.test_case "absent" `Quick test_parse_due_date_absent;
+        Alcotest.test_case "without description" `Quick
+          test_parse_due_date_without_description;
+        Alcotest.test_case "invalid" `Quick test_parse_due_date_invalid;
+      ] );
+    ( "parse_task",
+      [
+        Alcotest.test_case "active" `Quick test_parse_task_active;
+        Alcotest.test_case "priority" `Quick test_parse_task_priority;
+        Alcotest.test_case "due date" `Quick test_parse_task_due_date;
+        Alcotest.test_case "completed with all fields" `Quick
+          test_parse_task_completed_with_all_fields;
+        Alcotest.test_case "archived" `Quick test_parse_task_archived;
+        Alcotest.test_case "empty line" `Quick test_parse_task_empty;
+        Alcotest.test_case "trims whitespace" `Quick test_parse_task_trims;
+        Alcotest.test_case "invalid due date" `Quick
+          test_parse_task_invalid_due_date;
+        Alcotest.test_case "round-trips to_string" `Quick
+          test_parse_task_roundtrip;
       ] );
   ]
