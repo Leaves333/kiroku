@@ -20,12 +20,18 @@ module Marker = struct
 end
 
 (* turn a status into its Marker *)
-let kind = function
+let marker_of_status = function
   | Active -> Marker.Active
   | Completed _ -> Marker.Completed
   | Archived _ -> Marker.Archived
 
-let status_to_char status = Marker.to_char (kind status)
+let status_of_marker marker date =
+  match marker with
+  | Marker.Active -> Active
+  | Marker.Completed -> Completed date
+  | Marker.Archived -> Archived date
+
+let status_to_char status = Marker.to_char (marker_of_status status)
 
 let status_to_string = function
   | Active -> ""
@@ -60,6 +66,40 @@ let to_string task =
   (* ignore empty parts in components *)
   List.filter (fun part -> part <> "") components |> String.concat " "
 
-let parse_status line = raise @@ Failure "not yet implemented."
-let parse_due_date line = raise @@ Failure "not yet implemented."
+(* returns the status if present, and the rest of the line *)
+let parse_status line =
+  (* active is the default return value, for valid no status *)
+  let active = Some (Active, line) in
+  if String.length line < 2 then active
+  else
+    (* if first char matches with a status char,
+       and the second char is empty, we expect a date *)
+    match Marker.of_char line.[0] with
+    | None -> active
+    | Some marker -> (
+        if line.[1] <> ' ' then active
+        else if String.length line < 12 then None
+        else
+          let date_option = parse_date (String.sub line 2 10) in
+          match date_option with
+          | None -> None
+          | Some date ->
+              let remaining = String.drop_first 13 line in
+              Some (status_of_marker marker date, remaining))
+
+(* returns the due date if present, and the rest of the line *)
+let parse_due_date line =
+  (* line is too short to have due *)
+  if String.length line < 4 then Some (None, line)
+    (* line doesn't start with "due:" *)
+  else if String.take_first 4 line <> "due:" then Some (None, line)
+  else
+    let date_option = parse_date (String.sub line 4 10) in
+    match date_option with
+    | None -> None
+    | Some date ->
+        let remaining = String.drop_first 15 line in
+        Some (Some date, remaining)
+
+(* parses a whole line as a task *)
 let parse_task line = raise @@ Failure "not yet implemented."
