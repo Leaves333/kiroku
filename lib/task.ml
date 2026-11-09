@@ -46,7 +46,7 @@ type task = {
   description : string; (* remainder of string *)
 }
 
-let to_string task =
+let task_to_string task =
   let priority_string =
     match task.priority with None -> "" | Some c -> Printf.sprintf "(%c)" c
   in
@@ -121,3 +121,10 @@ let parse_task line =
     let* priority, remaining = parse_priority remaining in
     let* due_date, remaining = parse_due_date remaining in
     Some { status; priority; due_date; description = remaining }
+
+let compare_by_priority (a : task) (b : task) =
+  match (a.priority, b.priority) with
+  | Some prio_a, Some prio_b -> compare prio_a prio_b
+  | Some _, None -> -1
+  | None, Some _ -> 1
+  | None, None -> 0

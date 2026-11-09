@@ -2,6 +2,7 @@ open Nottui
 module W = Nottui_widgets
 open In_channel
 open Utils
+open Task
 
 (*lwd dynamic variables? *)
 let all_focuses = [ Task; Filter; Edit ]
@@ -135,8 +136,10 @@ let edit_keyboard_handler = function
 let edit_view ~(state : state) ~(focus : Focus.status) =
   let content =
     Filter.read_lines Filter.todo_file_path
+    |> List.filter_map Task.parse_task
+    |> List.sort Task.compare_by_priority
+    |> List.map Task.task_to_string
     |> Filter.filter_lines state.filter_pattern
-    |> List.sort Utils.compare_by_priority
     |> List.map (Filter.highlight_matches state.filter_pattern)
     |> mark_selected_task state.task_index
     |> Ui.vcat
