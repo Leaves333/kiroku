@@ -11,15 +11,21 @@ let parse_date str =
 
 type status = Active | Completed of date | Archived of date
 
-let status_to_char = function
-  | Active -> None
-  | Completed _ -> Some 'x'
-  | Archived _ -> Some '~'
+module Marker = struct
+  type t = Active | Completed | Archived
 
-let status_of_char = function
-  | 'x' -> Some (Completed null_date)
-  | '~' -> Some (Archived null_date)
-  | _ -> None
+  let mappings = [ (Completed, 'x'); (Archived, '~') ]
+  let to_char marker = List.assoc_opt marker mappings
+  let of_char c = List.find_opt (fun (_, m) -> m = c) mappings |> Option.map fst
+end
+
+(* turn a status into its Marker *)
+let kind = function
+  | Active -> Marker.Active
+  | Completed _ -> Marker.Completed
+  | Archived _ -> Marker.Archived
+
+let status_to_char status = Marker.to_char (kind status)
 
 let status_to_string = function
   | Active -> ""
