@@ -1,3 +1,4 @@
+open Views
 open Nottui
 module W = Nottui_widgets
 open State
@@ -85,61 +86,19 @@ let task_keyboard_handler = function
       `Handled
   | _ -> `Unhandled
 
-type handlers = {
-  filter : Ui.key -> Ui.may_handle;
-  task : Ui.key -> Ui.may_handle;
-}
-
-let handlers =
+let (handlers : Views.handlers) =
   { filter = filter_keyboard_handler; task = task_keyboard_handler }
-
-(* views *)
-let header_view ~(state : state) =
-  Ui.vcat
-    [
-      W.string "epic ocaml tui app !!!";
-      W.printf "current focus is: %s" (focus_to_string state.focus);
-      W.string "";
-    ]
-
-let filter_view ~(state : state) ~(focus : Focus.status)
-    ~(on_key : Ui.key -> Ui.may_handle) =
-  let filter_desc = W.printf "filter: %s" state.filter_pattern in
-  let filter_highlight = W.string ~attr:Filter.highlight_attr " " in
-  let filter_line_components =
-    if state.focus = Filter then [ filter_desc; filter_highlight ]
-    else [ filter_desc ]
-  in
-  let filter_line = Ui.hcat filter_line_components in
-  let content = Ui.vcat [ filter_line; W.string "" ] in
-  Ui.keyboard_area ~focus on_key content
-
-let task_view ~(state : state) ~(focus : Focus.status)
-    ~(on_key : Ui.key -> Ui.may_handle) =
-  let content =
-    visible_tasks state
-    |> List.map Task.task_to_string
-    |> List.map (Filter.highlight_matches state.filter_pattern)
-    |> Views.mark_selected_task state.task_index
-    |> Ui.vcat
-  in
-  Ui.keyboard_area ~focus on_key content
-
-let view ~state ~statuses ~handlers =
-  let header = header_view ~state in
-  let filter =
-    filter_view ~state
-      ~focus:(Focus_map.find Filter statuses)
-      ~on_key:handlers.filter
-  in
-  let task =
-    task_view ~state ~focus:(Focus_map.find Task statuses) ~on_key:handlers.task
-  in
-  Ui.vcat [ header; filter; task ]
 
 let app =
   Lwd.map render_context ~f:(fun ctx ->
-      view ~state:ctx.state ~statuses:ctx.statuses ~handlers)
+      let statuses =
+        {
+          Views.task = Focus_map.find Task ctx.statuses;
+          filter = Focus_map.find Filter ctx.statuses;
+        }
+      in
+      Views.view ~state:ctx.state ~tasks:(visible_tasks ctx.state) ~statuses
+        ~handlers)
 
 let run () =
   set_focus Task;
