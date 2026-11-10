@@ -20,35 +20,16 @@ let set_focus focus =
   Focus.request (resolve_focus focus);
   Lwd.update (fun state -> { state with focus }) state
 
-(* type for map, with focus_type as the key *)
-module Focus_map = Map.Make (struct
-  type t = focus
-
-  let compare = Stdlib.compare
-end)
-
-(* constructs a Lwd.t "reactive value" of a Focus.status Focus_map.t *)
-(* the `f` in List.fold_left takes our current reactive map, and a focus *)
-(* in the function Lwd.bind unwraps the Lwd.t *)
-(* then we map the focus to its Focus.status *)
-(* and the final function adds this key value pair to the map *)
-let focus_statuses =
-  List.fold_left
-    (fun statuses_lwd focus ->
-      Lwd.bind statuses_lwd ~f:(fun statuses ->
-          Lwd.map
-            (Focus.status (resolve_focus focus))
-            ~f:(fun status -> Focus_map.add focus status statuses)))
-    (Lwd.pure Focus_map.empty) all_focuses
-
 (* need a separate type for render context because state can be mutated by code... *)
 (* but statuses is "independent" info that can't be directly mutated *)
-type render_context = { state : state; statuses : Focus.status Focus_map.t }
+type render_context = { state : state; statuses : statuses }
 
 (* combine the state and focus_statuses to a single render_context object *)
 let render_context =
   Lwd.bind (Lwd.get state) ~f:(fun state ->
-      Lwd.map focus_statuses ~f:(fun statuses -> { state; statuses }))
+      Lwd.bind (Focus.status task_focus) ~f:(fun task ->
+          Lwd.map (Focus.status filter_focus) ~f:(fun filter ->
+              { state; statuses = { task; filter } })))
 
 let visible_tasks state =
   Todo_file.read ()
@@ -66,7 +47,7 @@ let filter_keyboard_handler = function
       Lwd.update State.filter_pattern_backspace state;
       `Handled
   | `Escape, _ | `Enter, _ ->
-      Lwd.update (fun state -> { state with task_index = 0 }) state;
+      Lwd.update (State.set_task_index 0) state;
       set_focus Task;
       `Handled
   | _ -> `Unhandled
@@ -86,19 +67,13 @@ let task_keyboard_handler = function
       `Handled
   | _ -> `Unhandled
 
-let (handlers : Views.handlers) =
-  { filter = filter_keyboard_handler; task = task_keyboard_handler }
+let (handlers : handlers) =
+  { task = task_keyboard_handler; filter = filter_keyboard_handler }
 
 let app =
   Lwd.map render_context ~f:(fun ctx ->
-      let statuses =
-        {
-          Views.task = Focus_map.find Task ctx.statuses;
-          filter = Focus_map.find Filter ctx.statuses;
-        }
-      in
-      Views.view ~state:ctx.state ~tasks:(visible_tasks ctx.state) ~statuses
-        ~handlers)
+      Views.view ~state:ctx.state ~tasks:(visible_tasks ctx.state)
+        ~statuses:ctx.statuses ~handlers)
 
 let run () =
   set_focus Task;

@@ -3,8 +3,8 @@ module W = Nottui_widgets
 open State
 
 type handlers = {
-  filter : Ui.key -> Ui.may_handle;
   task : Ui.key -> Ui.may_handle;
+  filter : Ui.key -> Ui.may_handle;
 }
 
 (* avoid depending on App's Focus_map *)
