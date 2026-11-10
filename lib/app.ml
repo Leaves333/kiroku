@@ -84,17 +84,6 @@ let move_task_selection amount =
       { state with task_index = new_index })
     state
 
-let mark_selected_task index lines =
-  let rec helper acc index lines =
-    match lines with
-    | [] -> acc
-    | x :: xs ->
-        let select_text = if index = 0 then "> " else "  " in
-        let select_widget = W.string select_text in
-        helper (Ui.hcat [ select_widget; x ] :: acc) (index - 1) xs
-  in
-  List.rev (helper [] index lines)
-
 let task_keyboard_handler = function
   | `ASCII '/', _ ->
       set_focus Filter;
@@ -145,7 +134,7 @@ let task_view ~(state : state) ~(focus : Focus.status)
     |> List.map Task.task_to_string
     |> Filter.filter_lines state.filter_pattern
     |> List.map (Filter.highlight_matches state.filter_pattern)
-    |> mark_selected_task state.task_index
+    |> Views.mark_selected_task state.task_index
     |> Ui.vcat
   in
   Ui.keyboard_area ~focus on_key content
