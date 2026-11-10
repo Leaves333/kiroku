@@ -1,9 +1,9 @@
 open Kiroku
 
 let test_delete_last_char () =
-  Alcotest.(check string) "empty stays empty" "" (Views.delete_last_char "");
-  Alcotest.(check string) "single char" "" (Views.delete_last_char "a");
-  Alcotest.(check string) "drops last char" "ab" (Views.delete_last_char "abc")
+  Alcotest.(check string) "empty stays empty" "" (App.delete_last_char "");
+  Alcotest.(check string) "single char" "" (App.delete_last_char "a");
+  Alcotest.(check string) "drops last char" "ab" (App.delete_last_char "abc")
 
 let check_highlight_width name pattern line =
   Alcotest.(check int)

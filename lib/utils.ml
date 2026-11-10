@@ -1,14 +1,5 @@
 open Task
-
-type focus = Task | Filter | Edit
-type state = { focus : focus; task_index : int; filter_pattern : string }
-
-let get_filtered_lines ~state =
-  Filter.read_lines Filter.todo_file_path
-  |> List.filter_map Task.parse_task
-  |> List.sort Task.compare_by_priority
-  |> List.map Task.task_to_string
-  |> Filter.filter_lines state.filter_pattern
+open Todo_file
 
 type priority = char option
 
