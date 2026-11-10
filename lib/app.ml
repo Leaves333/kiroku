@@ -49,17 +49,17 @@ let render_context =
   Lwd.bind (Lwd.get state) ~f:(fun state ->
       Lwd.map focus_statuses ~f:(fun statuses -> { state; statuses }))
 
-(* filter view *)
+let visible_tasks state =
+  Todo_file.read ()
+  |> Filter.filter_tasks state.filter_pattern
+  |> List.sort Task.compare_by_priority
+
+let task_max_index state = List.length (visible_tasks state) - 1
+
 let filter_keyboard_handler = function
   | `ASCII character, modifiers
     when (not (List.mem `Ctrl modifiers)) && not (List.mem `Meta modifiers) ->
-      Lwd.update
-        (fun state ->
-          {
-            state with
-            filter_pattern = state.filter_pattern ^ String.make 1 character;
-          })
-        state;
+      Lwd.update (State.filter_pattern_append character) state;
       `Handled
   | `Backspace, _ ->
       Lwd.update State.filter_pattern_backspace state;
@@ -70,29 +70,18 @@ let filter_keyboard_handler = function
       `Handled
   | _ -> `Unhandled
 
-(* task view *)
-let move_task_selection amount =
-  Lwd.update
-    (fun state ->
-      let visible_tasks =
-        Todo_file.read_lines Todo_file.todo_file_path
-        |> Filter.filter_lines state.filter_pattern
-      in
-      let max_index = List.length visible_tasks - 1 in
-      let new_index = state.task_index + amount |> max 0 |> min max_index in
-      { state with task_index = new_index })
-    state
-
 let task_keyboard_handler = function
   | `ASCII '/', _ ->
       set_focus Filter;
-      Lwd.update (fun state -> { state with task_index = -1 }) state;
+      Lwd.update (State.set_task_index (-1)) state;
       `Handled
   | (`Arrow `Up | `ASCII 'k'), _ ->
-      move_task_selection (-1);
+      Lwd.update
+        (fun s -> State.move_task_index (task_max_index s) (-1) s)
+        state;
       `Handled
   | (`Arrow `Down | `ASCII 'j'), _ ->
-      move_task_selection 1;
+      Lwd.update (fun s -> State.move_task_index (task_max_index s) 1 s) state;
       `Handled
   | _ -> `Unhandled
 
@@ -105,11 +94,6 @@ let handlers =
   { filter = filter_keyboard_handler; task = task_keyboard_handler }
 
 (* views *)
-let visible_tasks state () =
-  Todo_file.read ()
-  |> Filter.filter_tasks state.filter_pattern
-  |> List.sort Task.compare_by_priority
-
 let header_view ~(state : state) =
   Ui.vcat
     [
@@ -133,9 +117,8 @@ let filter_view ~(state : state) ~(focus : Focus.status)
 let task_view ~(state : state) ~(focus : Focus.status)
     ~(on_key : Ui.key -> Ui.may_handle) =
   let content =
-    visible_tasks state ()
+    visible_tasks state
     |> List.map Task.task_to_string
-    |> Filter.filter_lines state.filter_pattern
     |> List.map (Filter.highlight_matches state.filter_pattern)
     |> Views.mark_selected_task state.task_index
     |> Ui.vcat

@@ -1,5 +1,3 @@
-open Task
-
 let todo_file_path = "todo.txt"
 
 let read_lines file =
