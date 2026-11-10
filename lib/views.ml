@@ -42,7 +42,7 @@ let filter_view ~(state : state) ~(focus : Focus.status)
   let content = Ui.vcat [ filter_line; W.string "" ] in
   Ui.keyboard_area ~focus on_key content
 
-let task_view ~(state : state) ~(tasks : Task.task list) ~(focus : Focus.status)
+let task_view ~(state : state) ~(tasks : Task.t list) ~(focus : Focus.status)
     ~(on_key : Ui.key -> Ui.may_handle) =
   let content =
     List.map Task.to_string tasks
@@ -52,7 +52,7 @@ let task_view ~(state : state) ~(tasks : Task.task list) ~(focus : Focus.status)
   in
   Ui.keyboard_area ~focus on_key content
 
-let view ~(state : state) ~(tasks : Task.task list) ~(statuses : statuses)
+let view ~(state : state) ~(tasks : Task.t list) ~(statuses : statuses)
     ~(handlers : handlers) =
   let header = header_view ~state in
   let filter =

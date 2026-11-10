@@ -30,7 +30,7 @@ let status_to_string = function
       let c = Option.get (status_to_char status) in
       Printf.sprintf "%c %s" c (Date.to_string date)
 
-type task = {
+type t = {
   status : Status.t;
   priority : char option;
   due_date : Date.t option; (* due:yyyy-mm-dd *)
@@ -113,7 +113,7 @@ let parse line =
     let* due_date, remaining = parse_due_date remaining in
     Some { status; priority; due_date; description = remaining }
 
-let compare_by_priority (a : task) (b : task) =
+let compare_by_priority (a : t) (b : t) =
   match (a.priority, b.priority) with
   | Some prio_a, Some prio_b -> compare prio_a prio_b
   | Some _, None -> -1
