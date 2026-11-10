@@ -2,13 +2,18 @@ open Nottui
 module W = Nottui_widgets
 open In_channel
 
+(* unused helper function*)
 let print_list lines = String.concat ", " lines |> Printf.printf "[%s]"
 
-(* returns only lines that contain pattern as a substring *)
-let filter_lines pattern lines =
-  List.filter
-    (fun line -> Option.is_some (String.find_first ~sub:pattern line))
-    lines
+(* returns if pattern is inside text *)
+let matches pattern text = Option.is_some (String.find_first ~sub:pattern text)
+
+(* returns all strings in lines that contain pattern *)
+let filter_lines pattern lines = List.filter (matches pattern) lines
+
+(* returns all tasks in tasks that match pattern *)
+let filter_tasks pattern tasks =
+  List.filter (fun task -> matches pattern (Task.task_to_string task)) tasks
 
 let highlight_attr = Notty.A.(fg black ++ bg yellow)
 

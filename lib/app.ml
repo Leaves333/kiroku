@@ -50,7 +50,6 @@ let render_context =
       Lwd.map focus_statuses ~f:(fun statuses -> { state; statuses }))
 
 (* filter view *)
-
 let filter_keyboard_handler = function
   | `ASCII character, modifiers
     when (not (List.mem `Ctrl modifiers)) && not (List.mem `Meta modifiers) ->
@@ -106,6 +105,11 @@ let handlers =
   { filter = filter_keyboard_handler; task = task_keyboard_handler }
 
 (* views *)
+let visible_tasks state () =
+  Todo_file.read ()
+  |> Filter.filter_tasks state.filter_pattern
+  |> List.sort Task.compare_by_priority
+
 let header_view ~(state : state) =
   Ui.vcat
     [
@@ -129,8 +133,7 @@ let filter_view ~(state : state) ~(focus : Focus.status)
 let task_view ~(state : state) ~(focus : Focus.status)
     ~(on_key : Ui.key -> Ui.may_handle) =
   let content =
-    Todo_file.read ()
-    |> List.sort Task.compare_by_priority
+    visible_tasks state ()
     |> List.map Task.task_to_string
     |> Filter.filter_lines state.filter_pattern
     |> List.map (Filter.highlight_matches state.filter_pattern)
