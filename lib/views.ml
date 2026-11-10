@@ -3,8 +3,8 @@ module W = Nottui_widgets
 open State
 
 type handlers = {
-  task : Ui.key -> Ui.may_handle;
   filter : Ui.key -> Ui.may_handle;
+  task : Ui.key -> Ui.may_handle;
 }
 
 (* avoid depending on App's Focus_map *)
@@ -45,7 +45,7 @@ let filter_view ~(state : state) ~(focus : Focus.status)
 let task_view ~(state : state) ~(tasks : Task.task list) ~(focus : Focus.status)
     ~(on_key : Ui.key -> Ui.may_handle) =
   let content =
-    List.map Task.task_to_string tasks
+    List.map Task.to_string tasks
     |> List.map (Filter.highlight_matches state.filter_pattern)
     |> mark_selected_task state.task_index
     |> Ui.vcat

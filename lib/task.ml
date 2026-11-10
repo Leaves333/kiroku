@@ -1,15 +1,6 @@
-type date = { year : int; month : int; day : int }
-
-let date_to_string date =
-  Printf.sprintf "%04d-%02d-%02d" date.year date.month date.day
-
-let parse_date str =
-  (* parses the three ints from the string,
-     then passes the values to a function that constructs a date object *)
-  Scanf.sscanf_opt str "%04d-%02d-%02d%!" (fun year month day ->
-      { year; month; day })
-
-type status = Active | Completed of date | Archived of date
+module Status = struct
+  type t = Active | Completed of Date.t | Archived of Date.t
+end
 
 module Marker = struct
   type t = Active | Completed | Archived
@@ -21,39 +12,39 @@ end
 
 (* turn a status into its Marker *)
 let marker_of_status = function
-  | Active -> Marker.Active
-  | Completed _ -> Marker.Completed
-  | Archived _ -> Marker.Archived
+  | Status.Active -> Marker.Active
+  | Status.Completed _ -> Marker.Completed
+  | Status.Archived _ -> Marker.Archived
 
 let status_of_marker marker date =
   match marker with
-  | Marker.Active -> Active
-  | Marker.Completed -> Completed date
-  | Marker.Archived -> Archived date
+  | Marker.Active -> Status.Active
+  | Marker.Completed -> Status.Completed date
+  | Marker.Archived -> Status.Archived date
 
 let status_to_char status = Marker.to_char (marker_of_status status)
 
 let status_to_string = function
-  | Active -> ""
-  | (Completed date | Archived date) as status ->
+  | Status.Active -> ""
+  | (Status.Completed date | Status.Archived date) as status ->
       let c = Option.get (status_to_char status) in
-      Printf.sprintf "%c %s" c (date_to_string date)
+      Printf.sprintf "%c %s" c (Date.to_string date)
 
 type task = {
-  status : status;
+  status : Status.t;
   priority : char option;
-  due_date : date option; (* due:yyyy-mm-dd *)
+  due_date : Date.t option; (* due:yyyy-mm-dd *)
   description : string; (* remainder of string *)
 }
 
-let task_to_string task =
+let to_string task =
   let priority_string =
     match task.priority with None -> "" | Some c -> Printf.sprintf "(%c)" c
   in
   let due_date_string =
     match task.due_date with
     | None -> ""
-    | Some date -> "due:" ^ date_to_string date
+    | Some date -> "due:" ^ Date.to_string date
   in
   let components =
     [
@@ -69,7 +60,7 @@ let task_to_string task =
 (* returns the status if present, and the rest of the line *)
 let parse_status line =
   (* active is the default return value, for valid no status *)
-  let active = Some (Active, line) in
+  let active = Some (Status.Active, line) in
   if String.length line < 2 then active
   else
     (* if first char matches with a status char,
@@ -80,7 +71,7 @@ let parse_status line =
         if line.[1] <> ' ' then active
         else if String.length line < 12 then None
         else
-          let date_option = parse_date (String.sub line 2 10) in
+          let date_option = Date.parse (String.sub line 2 10) in
           match date_option with
           | None -> None
           | Some date ->
@@ -104,7 +95,7 @@ let parse_due_date line =
     (* line is too short to contain a whole "due:yyyy-mm-dd" *)
   else if String.length line < 14 then None
   else
-    let date_option = parse_date (String.sub line 4 10) in
+    let date_option = Date.parse (String.sub line 4 10) in
     match date_option with
     | None -> None
     | Some date ->
@@ -112,7 +103,7 @@ let parse_due_date line =
         Some (Some date, remaining)
 
 (* parses a whole line as a task *)
-let parse_task line =
+let parse line =
   let line = String.trim line in
   if line = "" then None
   else

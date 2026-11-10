@@ -25,7 +25,7 @@ let rendered_lines ui =
 let check_lines name expected ui =
   Alcotest.(check (list string)) name expected (rendered_lines ui)
 
-let task_of_line line = Option.get (Task.parse_task line)
+let task_of_line line = Option.get (Task.parse line)
 
 (* delete_last_char *)
 

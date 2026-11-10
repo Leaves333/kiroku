@@ -122,7 +122,7 @@ let test_read_parses_tasks () =
   with_temp_cwd (fun _ ->
       write_file Todo_file.todo_file_path
         "buy milk\n(A) call mom\nx 2026-08-24 done\n";
-      let lines = List.map Task.task_to_string (Todo_file.read ()) in
+      let lines = List.map Task.to_string (Todo_file.read ()) in
       Alcotest.(check (list string))
         "parses each line as a task"
         [ "buy milk"; "(A) call mom"; "x 2026-08-24 done" ]
@@ -132,7 +132,7 @@ let test_read_ignores_blank_and_invalid_lines () =
   with_temp_cwd (fun _ ->
       write_file Todo_file.todo_file_path
         "\nbuy milk\ndue:not-a-date\n(a) task\n   \nsecond\n";
-      let lines = List.map Task.task_to_string (Todo_file.read ()) in
+      let lines = List.map Task.to_string (Todo_file.read ()) in
       Alcotest.(check (list string))
         "keeps only valid tasks" [ "buy milk"; "second" ] lines)
 
@@ -148,7 +148,7 @@ let test_read_missing_file () =
 
 (* write *)
 
-let task_of_line line = Option.get (Task.parse_task line)
+let task_of_line line = Option.get (Task.parse line)
 
 let test_write_serializes_tasks () =
   with_temp_cwd (fun _ ->
@@ -189,7 +189,7 @@ let test_write_read_roundtrip () =
         ]
       in
       Todo_file.write (List.map task_of_line lines);
-      let result = List.map Task.task_to_string (Todo_file.read ()) in
+      let result = List.map Task.to_string (Todo_file.read ()) in
       Alcotest.(check (list string)) "write then read" lines result)
 
 let suites =

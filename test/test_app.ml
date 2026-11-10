@@ -27,7 +27,7 @@ let make_state pattern =
   State.{ focus = Task; task_index = 0; filter_pattern = pattern }
 
 let visible_lines pattern =
-  App.visible_tasks (make_state pattern) |> List.map Task.task_to_string
+  App.visible_tasks (make_state pattern) |> List.map Task.to_string
 
 let check_visible name expected pattern =
   Alcotest.(check (list string)) name expected (visible_lines pattern)

@@ -13,7 +13,7 @@ let filter_lines pattern lines = List.filter (matches pattern) lines
 
 (* returns all tasks in tasks that match pattern *)
 let filter_tasks pattern tasks =
-  List.filter (fun task -> matches pattern (Task.task_to_string task)) tasks
+  List.filter (fun task -> matches pattern (Task.to_string task)) tasks
 
 let highlight_attr = Notty.A.(fg black ++ bg yellow)
 

@@ -1,12 +1,12 @@
 open Kiroku
 
-let make_date year month day = Task.{ year; month; day }
+let make_date year month day = Date.{ year; month; day }
 
 let make_task ?priority ?due_date status description =
   Task.{ status; priority; due_date; description }
 
 let check_date_to_string name expected date =
-  Alcotest.(check string) name expected (Task.date_to_string date)
+  Alcotest.(check string) name expected (Date.to_string date)
 
 let test_date_to_string_pads_components () =
   check_date_to_string "pads month and day" "2026-08-09" (make_date 2026 8 9)
@@ -19,92 +19,92 @@ let check_status_char name expected status =
   Alcotest.(check (option char)) name expected (Task.status_to_char status)
 
 let test_status_to_char_active () =
-  check_status_char "active has no marker" None Task.Active
+  check_status_char "active has no marker" None Task.Status.Active
 
 let test_status_to_char_completed () =
   check_status_char "completed uses x" (Some 'x')
-    (Task.Completed (make_date 2026 8 24))
+    (Task.Status.Completed (make_date 2026 8 24))
 
 let test_status_to_char_archived () =
   check_status_char "archived uses ~" (Some '~')
-    (Task.Archived (make_date 2026 8 24))
+    (Task.Status.Archived (make_date 2026 8 24))
 
 let check_status_to_string name expected status =
   Alcotest.(check string) name expected (Task.status_to_string status)
 
 let test_status_to_string_active () =
-  check_status_to_string "active is empty" "" Task.Active
+  check_status_to_string "active is empty" "" Task.Status.Active
 
 let test_status_to_string_completed () =
   check_status_to_string "completed includes date" "x 2026-08-24"
-    (Task.Completed (make_date 2026 8 24))
+    (Task.Status.Completed (make_date 2026 8 24))
 
 let test_status_to_string_archived () =
   check_status_to_string "archived includes date" "~ 2026-08-24"
-    (Task.Archived (make_date 2026 8 24))
+    (Task.Status.Archived (make_date 2026 8 24))
 
 let check_task_to_string name expected task =
-  Alcotest.(check string) name expected (Task.task_to_string task)
+  Alcotest.(check string) name expected (Task.to_string task)
 
 let test_task_to_string_active () =
   check_task_to_string "active task without optional fields" "buy milk"
-    (make_task Task.Active "buy milk")
+    (make_task Task.Status.Active "buy milk")
 
 let test_task_to_string_priority () =
   check_task_to_string "active task with priority" "(A) buy milk"
-    (make_task ~priority:'A' Task.Active "buy milk")
+    (make_task ~priority:'A' Task.Status.Active "buy milk")
 
 let test_task_to_string_due_date () =
   check_task_to_string "active task with due date" "due:2026-08-26 buy milk"
-    (make_task ~due_date:(make_date 2026 8 26) Task.Active "buy milk")
+    (make_task ~due_date:(make_date 2026 8 26) Task.Status.Active "buy milk")
 
 let test_task_to_string_completed_with_all_fields () =
   check_task_to_string "completed task with all fields"
     "x 2026-08-24 (B) due:2026-08-26 read @ling413 paradigms in corpus ling"
     (make_task ~priority:'B' ~due_date:(make_date 2026 8 26)
-       (Task.Completed (make_date 2026 8 24))
+       (Task.Status.Completed (make_date 2026 8 24))
        "read @ling413 paradigms in corpus ling")
 
 let test_task_to_string_archived () =
   check_task_to_string "archived task" "~ 2026-08-24 old task"
-    (make_task (Task.Archived (make_date 2026 8 24)) "old task")
+    (make_task (Task.Status.Archived (make_date 2026 8 24)) "old task")
 
 let test_task_to_string_empty_description () =
   check_task_to_string "drops empty description" "(A)"
-    (make_task ~priority:'A' Task.Active "")
+    (make_task ~priority:'A' Task.Status.Active "")
 
 let test_task_to_string_pads_dates () =
   check_task_to_string "pads status and due dates"
     "x 2026-01-05 (A) due:2026-01-09 task"
     (make_task ~priority:'A' ~due_date:(make_date 2026 1 9)
-       (Task.Completed (make_date 2026 1 5))
+       (Task.Status.Completed (make_date 2026 1 5))
        "task")
 
 (* parsing *)
 
 let date_testable =
   Alcotest.testable
-    (fun fmt date -> Format.pp_print_string fmt (Task.date_to_string date))
+    (fun fmt date -> Format.pp_print_string fmt (Date.to_string date))
     ( = )
 
 let status_testable =
   Alcotest.testable
     (fun fmt status ->
       match status with
-      | Task.Active -> Format.pp_print_string fmt "Active"
-      | Task.Completed date ->
-          Format.fprintf fmt "Completed %s" (Task.date_to_string date)
-      | Task.Archived date ->
-          Format.fprintf fmt "Archived %s" (Task.date_to_string date))
+      | Task.Status.Active -> Format.pp_print_string fmt "Active"
+      | Task.Status.Completed date ->
+          Format.fprintf fmt "Completed %s" (Date.to_string date)
+      | Task.Status.Archived date ->
+          Format.fprintf fmt "Archived %s" (Date.to_string date))
     ( = )
 
 let task_testable =
   Alcotest.testable
-    (fun fmt task -> Format.pp_print_string fmt (Task.task_to_string task))
+    (fun fmt task -> Format.pp_print_string fmt (Task.to_string task))
     ( = )
 
 let check_parsed_date name expected line =
-  Alcotest.(check (option date_testable)) name expected (Task.parse_date line)
+  Alcotest.(check (option date_testable)) name expected (Date.parse line)
 
 let check_parsed_status name expected line =
   Alcotest.(check (option (pair status_testable string)))
@@ -119,7 +119,7 @@ let check_parsed_priority name expected line =
     name expected (Task.parse_priority line)
 
 let check_parsed_task name expected line =
-  Alcotest.(check (option task_testable)) name expected (Task.parse_task line)
+  Alcotest.(check (option task_testable)) name expected (Task.parse line)
 
 let test_parse_date_valid () =
   check_parsed_date "parses a date" (Some (make_date 2026 8 24)) "2026-08-24"
@@ -142,27 +142,27 @@ let test_parse_date_trailing_text () =
 
 let test_parse_status_active () =
   check_parsed_status "active has no marker"
-    (Some (Task.Active, "buy milk"))
+    (Some (Task.Status.Active, "buy milk"))
     "buy milk"
 
 let test_parse_status_completed () =
   check_parsed_status "completed consumes marker and date"
-    (Some (Task.Completed (make_date 2026 8 24), "buy milk"))
+    (Some (Task.Status.Completed (make_date 2026 8 24), "buy milk"))
     "x 2026-08-24 buy milk"
 
 let test_parse_status_archived () =
   check_parsed_status "archived consumes marker and date"
-    (Some (Task.Archived (make_date 2026 8 24), "old task"))
+    (Some (Task.Status.Archived (make_date 2026 8 24), "old task"))
     "~ 2026-08-24 old task"
 
 let test_parse_status_completed_without_description () =
   check_parsed_status "completed without description"
-    (Some (Task.Completed (make_date 2026 8 24), ""))
+    (Some (Task.Status.Completed (make_date 2026 8 24), ""))
     "x 2026-08-24"
 
 let test_parse_status_leaves_priority () =
   check_parsed_status "priority is left for later"
-    (Some (Task.Active, "(A) buy milk"))
+    (Some (Task.Status.Active, "(A) buy milk"))
     "(A) buy milk"
 
 let test_parse_status_invalid_date () =
@@ -213,30 +213,31 @@ let test_parse_priority_ignores_malformed_prefix () =
 
 let test_parse_task_active () =
   check_parsed_task "active task without optional fields"
-    (Some (make_task Task.Active "buy milk"))
+    (Some (make_task Task.Status.Active "buy milk"))
     "buy milk"
 
 let test_parse_task_priority () =
   check_parsed_task "active task with priority"
-    (Some (make_task ~priority:'A' Task.Active "buy milk"))
+    (Some (make_task ~priority:'A' Task.Status.Active "buy milk"))
     "(A) buy milk"
 
 let test_parse_task_due_date () =
   check_parsed_task "active task with due date"
-    (Some (make_task ~due_date:(make_date 2026 8 26) Task.Active "buy milk"))
+    (Some
+       (make_task ~due_date:(make_date 2026 8 26) Task.Status.Active "buy milk"))
     "due:2026-08-26 buy milk"
 
 let test_parse_task_completed_with_all_fields () =
   check_parsed_task "completed task with all fields"
     (Some
        (make_task ~priority:'B' ~due_date:(make_date 2026 8 26)
-          (Task.Completed (make_date 2026 8 24))
+          (Task.Status.Completed (make_date 2026 8 24))
           "read @ling413 paradigms in corpus ling"))
     "x 2026-08-24 (B) due:2026-08-26 read @ling413 paradigms in corpus ling"
 
 let test_parse_task_archived () =
   check_parsed_task "archived task"
-    (Some (make_task (Task.Archived (make_date 2026 8 24)) "old task"))
+    (Some (make_task (Task.Status.Archived (make_date 2026 8 24)) "old task"))
     "~ 2026-08-24 old task"
 
 let test_parse_task_empty () =
@@ -245,7 +246,7 @@ let test_parse_task_empty () =
 
 let test_parse_task_trims () =
   check_parsed_task "trims surrounding whitespace"
-    (Some (make_task ~priority:'A' Task.Active "buy milk"))
+    (Some (make_task ~priority:'A' Task.Status.Active "buy milk"))
     "  (A) buy milk  "
 
 let test_parse_task_invalid_due_date () =
@@ -261,20 +262,20 @@ let test_parse_task_invalid_priority () =
 let test_parse_task_roundtrip () =
   let tasks =
     [
-      make_task Task.Active "buy milk";
-      make_task ~priority:'A' Task.Active "buy milk";
-      make_task ~due_date:(make_date 2026 8 26) Task.Active "buy milk";
+      make_task Task.Status.Active "buy milk";
+      make_task ~priority:'A' Task.Status.Active "buy milk";
+      make_task ~due_date:(make_date 2026 8 26) Task.Status.Active "buy milk";
       make_task ~priority:'B' ~due_date:(make_date 2026 8 26)
-        (Task.Completed (make_date 2026 8 24))
+        (Task.Status.Completed (make_date 2026 8 24))
         "read @ling413 paradigms in corpus ling";
-      make_task (Task.Archived (make_date 2026 8 24)) "old task";
+      make_task (Task.Status.Archived (make_date 2026 8 24)) "old task";
     ]
   in
   List.iter
     (fun task ->
       check_parsed_task
-        ("round-trips " ^ Task.task_to_string task)
-        (Some task) (Task.task_to_string task))
+        ("round-trips " ^ Task.to_string task)
+        (Some task) (Task.to_string task))
     tasks
 
 let suites =

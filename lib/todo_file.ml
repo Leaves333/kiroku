@@ -6,12 +6,11 @@ let read_lines file =
   |> List.filter (fun line -> line <> "")
   |> List.map String.trim
 
-let read () = read_lines todo_file_path |> List.filter_map Task.parse_task
+let read () = read_lines todo_file_path |> List.filter_map Task.parse
 
 let write_lines file lines =
   let data = String.concat "\n" lines in
   let data = if data = "" then "" else data ^ "\n" in
   Out_channel.with_open_text file (fun oc -> Out_channel.output_string oc data)
 
-let write tasks =
-  write_lines todo_file_path (List.map Task.task_to_string tasks)
+let write tasks = write_lines todo_file_path (List.map Task.to_string tasks)

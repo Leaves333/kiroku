@@ -34,13 +34,13 @@ let test_pattern_longer_than_line () =
 let test_treats_pattern_literally () =
   check_filtered "dot is literal" [ "a.b" ] "." [ "a.b"; "ab" ]
 
-let task_of_line line = Option.get (Task.parse_task line)
+let task_of_line line = Option.get (Task.parse line)
 
 let check_filtered_tasks name expected pattern lines =
   Alcotest.(check (list string))
     name expected
     (Filter.filter_tasks pattern (List.map task_of_line lines)
-    |> List.map Task.task_to_string)
+    |> List.map Task.to_string)
 
 let test_tasks_empty_pattern_matches_all () =
   check_filtered_tasks "empty pattern"
