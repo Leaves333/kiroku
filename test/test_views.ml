@@ -1,9 +1,14 @@
 open Kiroku
 
 let test_delete_last_char () =
-  Alcotest.(check string) "empty stays empty" "" (App.delete_last_char "");
-  Alcotest.(check string) "single char" "" (App.delete_last_char "a");
-  Alcotest.(check string) "drops last char" "ab" (App.delete_last_char "abc")
+  let backspace pattern =
+    State.filter_pattern_backspace
+      { State.focus = Task; task_index = 0; filter_pattern = pattern }
+    |> fun state -> state.filter_pattern
+  in
+  Alcotest.(check string) "empty stays empty" "" (backspace "");
+  Alcotest.(check string) "single char" "" (backspace "a");
+  Alcotest.(check string) "drops last char" "ab" (backspace "abc")
 
 let check_highlight_width name pattern line =
   Alcotest.(check int)
