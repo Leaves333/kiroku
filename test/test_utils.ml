@@ -1,7 +1,12 @@
 open Kiroku
 
+let get_priority line =
+  match Task.parse_priority line with
+  | Some (priority, _) -> priority
+  | None -> None
+
 let check_priority name expected line =
-  Alcotest.(check (option char)) name expected (Utils.get_priority line)
+  Alcotest.(check (option char)) name expected (get_priority line)
 
 let test_parses_A () = check_priority "parses (A)" (Some 'A') "(A) buy milk"
 let test_no_prefix () = check_priority "no prefix" None "buy milk"
@@ -36,8 +41,12 @@ let test_tab_rejected () =
 
 let sign n = compare n 0
 
+let compare_by_priority a b =
+  let task line = Option.get (Task.parse_task line) in
+  Task.compare_by_priority (task a) (task b)
+
 let check_comparison name expected a b =
-  Alcotest.(check int) name expected (sign (Utils.compare_by_priority a b))
+  Alcotest.(check int) name expected (sign (compare_by_priority a b))
 
 let test_both_priorities () =
   check_comparison "A sorts before B" (-1) "(A) task" "(B) task";

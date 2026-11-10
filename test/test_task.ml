@@ -44,7 +44,7 @@ let test_status_to_string_archived () =
     (Task.Archived (make_date 2026 8 24))
 
 let check_task_to_string name expected task =
-  Alcotest.(check string) name expected (Task.to_string task)
+  Alcotest.(check string) name expected (Task.task_to_string task)
 
 let test_task_to_string_active () =
   check_task_to_string "active task without optional fields" "buy milk"
@@ -100,7 +100,7 @@ let status_testable =
 
 let task_testable =
   Alcotest.testable
-    (fun fmt task -> Format.pp_print_string fmt (Task.to_string task))
+    (fun fmt task -> Format.pp_print_string fmt (Task.task_to_string task))
     ( = )
 
 let check_parsed_date name expected line =
@@ -273,8 +273,8 @@ let test_parse_task_roundtrip () =
   List.iter
     (fun task ->
       check_parsed_task
-        ("round-trips " ^ Task.to_string task)
-        (Some task) (Task.to_string task))
+        ("round-trips " ^ Task.task_to_string task)
+        (Some task) (Task.task_to_string task))
     tasks
 
 let suites =
