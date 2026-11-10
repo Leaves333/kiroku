@@ -3,7 +3,6 @@
  (modules
   test_kiroku
   test_task
-  test_utils
   test_filter
   test_views
   test_todo_file)
