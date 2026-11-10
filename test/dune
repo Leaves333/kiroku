@@ -5,5 +5,7 @@
   test_task
   test_filter
   test_views
+  test_state
+  test_app
   test_todo_file)
- (libraries kiroku alcotest nottui unix))
+ (libraries kiroku alcotest nottui notty-community unix))
